@@ -1,56 +1,48 @@
 from tkinter import *
-from PIL import ImageTk, Image
-import pymysql
-from tkinter import messagebox
+from PIL import Image, ImageTk
+from Member import openMemberPortal
+from Publisher import openPublisherPortal
 
-from AddBook import *
-from DeleteBook import *
-from ViewBooks import *
-from IssueBook import *
-from ReturnBook import *
+# Updated Color Scheme (Vibrant and Bright)
+BG_COLOR = "#CC4400"  # Bright Coral
+FG_COLOR = "#FFFFFF"  # White text
+BUTTON_COLOR = "#EA16EF"  # Dark Purple
+BUTTON_TEXT_COLOR = "#F4EEFF"  # Light Lavender
+ERROR_COLOR = "#D92027"  # Vibrant Red for Quit Button
 
-root = Tk()
-root.title("Library")
-root.minsize(width=400,height=400)
-root.geometry("600x500")
+# Fonts
+TITLE_FONT = ("Helvetica", 20, "bold")
+BUTTON_FONT = ("Helvetica", 14, "bold")
 
-same=True
-n=0.4
-# Adding a background image
-background_image =Image.open("lib.jpg")
-[imageSizeWidth, imageSizeHeight] = background_image.size
-newImageSizeWidth = int(imageSizeWidth*n)
-if same:
-    newImageSizeHeight = int(imageSizeHeight*n) 
-else:
-    newImageSizeHeight = int(imageSizeHeight/n) 
+def openMain():
+    global root
+    root = Tk()
+    root.title("Library Management System")
+    root.geometry("700x500")
     
-background_image = background_image.resize((newImageSizeWidth,newImageSizeHeight),Image.BILINEAR)
-img = ImageTk.PhotoImage(background_image)
-Canvas1 = Canvas(root)
-Canvas1.create_image(600,340,image = img)      
-Canvas1.config(bg="white",width = newImageSizeWidth, height = newImageSizeHeight)
-Canvas1.pack(expand=True,fill=BOTH)
-
-
-
-headingFrame1 = Frame(root,bg="#FFBB00",bd=5)
-headingFrame1.place(relx=0.2,rely=0.1,relwidth=0.6,relheight=0.16)
-headingLabel = Label(headingFrame1, text="Welcome to \n Library Management System", bg='black', fg='white', font=('Courier',15))
-headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
-
-btn1 = Button(root,text="Add Book Details",bg='black', fg='white', command=addBook)
-btn1.place(relx=0.28,rely=0.4, relwidth=0.45,relheight=0.1)
+    # Load and set wallpaper
+    try:
+        bg_image = Image.open("lib.jpg")
+        bg_image = bg_image.resize((700, 500), Image.LANCZOS)
+        bg_photo = ImageTk.PhotoImage(bg_image)
+        # Store the image reference in the window object
+        root.bg_image = bg_photo
+        bg_label = Label(root, image=bg_photo)
+        bg_label.place(relwidth=1, relheight=1)
+    except Exception as e:
+        print("Error loading wallpaper:", e)
     
-btn2 = Button(root,text="Delete Book",bg='black', fg='white', command=delete)
-btn2.place(relx=0.28,rely=0.5, relwidth=0.45,relheight=0.1)
+    # Heading Frame with Gradient Background
+    headingFrame = Frame(root, bg=BG_COLOR, bd=5)
+    headingFrame.place(relx=0.2, rely=0.1, relwidth=0.6, relheight=0.15)
+    headingLabel = Label(headingFrame, text="Library System", bg=BG_COLOR, fg=FG_COLOR, font=TITLE_FONT)
+    headingLabel.place(relx=0, rely=0, relwidth=1, relheight=1)
     
-btn3 = Button(root,text="View Book List",bg='black', fg='white', command=View)
-btn3.place(relx=0.28,rely=0.6, relwidth=0.45,relheight=0.1)
+    # Buttons with Neon Effect
+    Button(root, text="Member Section", bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR, font=BUTTON_FONT, relief=RAISED, borderwidth=3, command=openMemberPortal).place(relx=0.3, rely=0.4, relwidth=0.4, relheight=0.1)
+    Button(root, text="Publisher Section", bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR, font=BUTTON_FONT, relief=RAISED, borderwidth=3, command=openPublisherPortal).place(relx=0.3, rely=0.55, relwidth=0.4, relheight=0.1)
+    Button(root, text="Quit", bg=ERROR_COLOR, fg=FG_COLOR, font=BUTTON_FONT, relief=RAISED, borderwidth=3, command=root.destroy).place(relx=0.3, rely=0.75, relwidth=0.4, relheight=0.1)
     
-btn4 = Button(root,text="Issue Book to Student",bg='black', fg='white', command = issueBook)
-btn4.place(relx=0.28,rely=0.7, relwidth=0.45,relheight=0.1)
-    
-btn5 = Button(root,text="Return Book",bg='black', fg='white', command = returnBook)
-btn5.place(relx=0.28,rely=0.8, relwidth=0.45,relheight=0.1)
-root.mainloop()
+    root.mainloop()
+
+openMain()

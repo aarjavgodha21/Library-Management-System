@@ -1,119 +1,101 @@
 from tkinter import *
-from PIL import ImageTk,Image
 from tkinter import messagebox
 import pymysql
+from Member import logged_in_member, openMemberDashboard
+from PIL import Image, ImageTk
 
-mypass = "210905"
-mydatabase="db"
-con = pymysql.connect(host="localhost",user="root", password=mypass,database=mydatabase)
-cur = con.cursor()
-# Table Names here
-issueTable = "books_issued" 
-bookTable = "books"
-allBid = []  #To store all the Book ID’s
+# High-Contrast Color Scheme
+BG_COLOR = "#22223b"  # Very dark blue
+FG_COLOR = "#f4f4f4"  # Almost white
+ENTRY_BG = "#FFFFFF"  # White input fields
+ENTRY_FG = "#000000"  # Black text in inputs
+BUTTON_COLOR = "#4cc9f0"  # Bright blue/cyan
+BUTTON_TEXT_COLOR = "#22223b"  # Dark for contrast
+ERROR_COLOR = "#f72585"  # Vivid pink/red
+ERROR_TEXT_COLOR = "#f4f4f4"  # White
 
+# Fonts
+TITLE_FONT = ("Helvetica", 18, "bold")
+LABEL_FONT = ("Helvetica", 12, "bold")
+BUTTON_FONT = ("Helvetica", 12, "bold")
+
+def connect_db():
+    """Connect to MySQL database"""
+    try:
+        return pymysql.connect(host="localhost", user="root", password="210905", database="db")
+    except Exception as e:
+        messagebox.showerror("Database Error", f"Connection failed: {str(e)}")
+        return None
+
+def getAvailableBooks():
+    """Fetch all available books with copies > 0"""
+    con = connect_db()
+    books = []
+    if con:
+        try:
+            cur = con.cursor()
+            cur.execute("SELECT bid, title FROM books WHERE copies > 0")
+            books = [f"{row[0]} - {row[1]}" for row in cur.fetchall()]  # Format: "101 - Harry Potter"
+        except Exception as e:
+            messagebox.showerror("Database Error", f"Failed to fetch book IDs: {str(e)}")
+        finally:
+            con.close()
+    return books
+
+def issueBook():
+    """Issue a book to the logged-in member"""
+    global logged_in_member
+    selected_book = book_var.get()
+    bid = selected_book.split(" - ")[0]  # Extract only the book ID
+
+    if not logged_in_member:
+        messagebox.showerror("Error", "No member is logged in", icon="error")
+        return
+
+    con = connect_db()
+    if con:
+        try:
+            cur = con.cursor()
+            cur.execute("SELECT copies FROM books WHERE bid=%s", (bid,))
+            book = cur.fetchone()
+
+            if book and book[0] > 0:
+                cur.execute("INSERT INTO books_issued (bid, issuedto) VALUES (%s, %s)", (bid, logged_in_member))
+                cur.execute("UPDATE books SET copies = copies - 1 WHERE bid=%s", (bid,))
+                con.commit()
+                messagebox.showinfo("Success", "Book Issued Successfully", icon="info")
+                root.withdraw()
+                openMemberDashboard()
+            else:
+                messagebox.showerror("Error", "Book not available", icon="error")
+        except Exception as e:
+            messagebox.showerror("Database Error", f"Issue failed: {str(e)}", icon="error")
+        finally:
+            con.close()
+
+def load_bg_image(window):
+    pass  # No background image for non-main windows
 
 def issue():
-    
-    global issueBtn,labelFrame,lb1,inf1,inf2,quitBtn,root,Canvas1,status
-    
-    bid = inf1.get()
-    issueto = inf2.get()
-    issueBtn.destroy()
-    labelFrame.destroy()
-    lb1.destroy()
-    inf1.destroy()
-    inf2.destroy()
-    
-    
-    extractBid = "select bid from "+bookTable
-    try:
-        cur.execute(extractBid)
-        con.commit()
-        for i in cur:
-            allBid.append(i[0])
-        
-        if bid in allBid:
-            checkAvail = "select status from "+bookTable+" where bid = '"+bid+"'"
-            cur.execute(checkAvail)
-            con.commit()
-            for i in cur:
-                check = i[0]
-                
-            if check == 'avail':
-                status = True
-            else:
-                status = False
-        else:
-            messagebox.showinfo("Error","Book ID not present")
-    except:
-        messagebox.showinfo("Error","Can't fetch Book IDs")
-    
-    issueSql = "insert into "+issueTable+" values ('"+bid+"','"+issueto+"')"
-    show = "select * from "+issueTable
-    
-    updateStatus = "update "+bookTable+" set status = 'issued' where bid = '"+bid+"'"
-    try:
-        if bid in allBid and status == True:
-            cur.execute(issueSql)
-            con.commit()
-            cur.execute(updateStatus)
-            con.commit()
-            messagebox.showinfo('Success',"Book Issued Successfully")
-            root.destroy()
-        else:
-            allBid.clear()
-            messagebox.showinfo('Message',"Book Already Issued")
-            root.destroy()
-            return
-    except:
-        messagebox.showinfo("Search Error","The value entered is wrong, Try again")
-    print(bid)
-    print(issueto)
-    
-    allBid.clear()
+    """Create the Issue Book window"""
+    global book_var, root
 
-def issueBook(): 
-    
-    global issueBtn,labelFrame,lb1,inf1,inf2,quitBtn,root,Canvas1,status
-    
-    root = Tk()
-    root.title("Library")
-    root.minsize(width=400,height=400)
-    root.geometry("600x500")
-    
-    Canvas1 = Canvas(root)
-    Canvas1.config(bg="#D6ED17")
-    Canvas1.pack(expand=True,fill=BOTH)
-    headingFrame1 = Frame(root,bg="#FFBB00",bd=5)
-    headingFrame1.place(relx=0.25,rely=0.1,relwidth=0.5,relheight=0.13)
-        
-    headingLabel = Label(headingFrame1, text="Issue Book", bg='black', fg='white', font=('Courier',15))
-    headingLabel.place(relx=0,rely=0, relwidth=1, relheight=1)
-    
-    labelFrame = Frame(root,bg='black')
-    labelFrame.place(relx=0.1,rely=0.3,relwidth=0.8,relheight=0.5)  
-        
-    # Book ID
-    lb1 = Label(labelFrame,text="Book ID : ", bg='black', fg='white')
-    lb1.place(relx=0.05,rely=0.2)
-        
-    inf1 = Entry(labelFrame)
-    inf1.place(relx=0.3,rely=0.2, relwidth=0.62)
-    
-    # Issued To Student name 
-    lb2 = Label(labelFrame,text="Issued To : ", bg='black', fg='white')
-    lb2.place(relx=0.05,rely=0.4)
-        
-    inf2 = Entry(labelFrame)
-    inf2.place(relx=0.3,rely=0.4, relwidth=0.62)
-    
-    
-    #Issue Button
-    issueBtn = Button(root,text="Issue",bg='#d1ccc0', fg='black',command=issue)
-    issueBtn.place(relx=0.28,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    quitBtn = Button(root,text="Quit",bg='#aaa69d', fg='black', command=root.destroy)
-    quitBtn.place(relx=0.53,rely=0.9, relwidth=0.18,relheight=0.08)
-    
-    root.mainloop()
+    root = Toplevel()
+    root.title("Issue Book")
+    root.geometry("450x350")
+    root.configure(bg=BG_COLOR)
+
+    Label(root, text="Issue Book", bg=BG_COLOR, fg=FG_COLOR, font=TITLE_FONT).pack(pady=15)
+
+    available_books = getAvailableBooks()
+
+    Label(root, text="Select Book:", bg=BG_COLOR, fg=FG_COLOR, font=LABEL_FONT).pack(pady=5)
+    book_var = StringVar(root)
+    if available_books:
+        book_var.set(available_books[0])
+    book_dropdown = OptionMenu(root, book_var, *available_books)
+    book_dropdown.config(bg=ENTRY_BG, fg=ENTRY_FG, font=LABEL_FONT, relief=SOLID, borderwidth=2)
+    book_dropdown.pack(pady=5)
+
+    Button(root, text="Issue", bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR, font=BUTTON_FONT, relief=RAISED, borderwidth=3, command=issueBook).pack(pady=10)
+    Button(root, text="Quit", bg=ERROR_COLOR, fg=ERROR_TEXT_COLOR, font=BUTTON_FONT, relief=RAISED, borderwidth=3, command=root.withdraw).pack(pady=5)
